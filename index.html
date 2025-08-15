@@ -1,0 +1,26 @@
+<!doctype html>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KeyShot GLB/USDZ 手機 3D 檢視器</title>
+<style>
+  :root{color-scheme:dark light}
+  body{font:16px/1.4 system-ui;margin:0;background:#0b1020;color:#e5e7eb}
+  header{padding:10px 12px;position:sticky;top:0;background:#0b1020;border-bottom:1px solid #1f2937;z-index:1}
+  main{padding:10px}
+  model-viewer{width:100%;height:70vh;background:#111827;border-radius:12px;display:block}
+  input{margin-right:.5rem}
+  small{color:#94a3b8}
+  .row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+  button{padding:.5rem .8rem;border-radius:.6rem;background:#334155;color:#e5e7eb;border:0}
+</style>
+<header class="row">
+  <input id="glb" type="file" accept=".glb,.gltf">
+  <input id="usdz" type="file" accept=".usdz">
+  <button id="reset">重置視角</button>
+  <small>先選 GLB（必選）。iPhone 要 AR 再選 USDZ。</small>
+</header>
+<main>
+  <model-viewer id="mv" camera-controls ar ar-modes="webxr scene-viewer quick-look"
+    disable-tap shadow-intensity="0.8" exposure="1"></model-viewer>
+</main>
+<!-- 一定要用相對路徑 -->
+<script type="module" src="./src/main.js"></script>
