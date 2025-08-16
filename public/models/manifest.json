@@ -15,5 +15,6 @@
   { "label": "柯南_20231201", "src": "models/Conan_20231201.glb" },
   { "label": "柯南_20231125", "src": "models/柯南_20231125.glb" },
   { "label": "柯博文_20230821", "src": "models/CB_20230821.glb" },
-  { "label": "大黃蜂_20230821", "src": "models/BY_20230821.glb" }
+  { "label": "大黃蜂_20230821", "src": "models/BY_20230821.glb" },
+   { "label": "Anya_20230815", "src": "models/Anya_20230815.glb" }
 ]
