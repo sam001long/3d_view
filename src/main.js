@@ -13,18 +13,30 @@ const msgEl = document.getElementById('progressMsg');
 
 let localBlobURL, remoteBlobURL, fetchCtrl = null, loadTicket = 0;
 
-// --- 把網址參數/路徑正規化（解掉 %2F 等、移除開頭斜線） ---
+// ---- 工具：正規化 src（解 %2F / 去開頭斜線 / 處理雙重編碼）----
 function normalizeSrc(s){
   if(!s) return s;
-  try{s=decodeURIComponent(s)}catch{}
-  try{s=decodeURIComponent(s)}catch{}
+  try{s = decodeURIComponent(s);}catch{}
+  try{s = decodeURIComponent(s);}catch{}
   return s.replace(/^\/+/, '');
 }
 
-// 初始化：載入 manifest、讀 ?src=
+// ---- 寫回網址（不讓 / 被編碼）----
+function setQuerySrc(src){
+  const u = new URL(location.href);
+  if (src) {
+    // encodeURI 會保留 '/'，只處理空白和其他特殊字元
+    u.search = '?src=' + encodeURI(src);
+  } else {
+    u.search = '';
+  }
+  history.replaceState(null, '', u.toString());
+}
+
+// 初始化：載入清單、讀 ?src=
 (async () => {
   try {
-    const r = await fetch('models/manifest.json', {cache:'no-store'});
+    const r = await fetch('models/manifest.json', { cache: 'no-store' });
     if (r.ok){
       const list = await r.json();
       for (const it of list){
@@ -35,14 +47,18 @@ function normalizeSrc(s){
   } catch {}
   const p = new URLSearchParams(location.search);
   const s = normalizeSrc(p.get('src'));
-  if (s){ preset.value = [...preset.options].find(o=>o.value===s)?.value || ''; loadFromURL(s).catch(showError); }
+  if (s){
+    preset.value = [...preset.options].find(o => o.value === s)?.value || '';
+    loadFromURL(s).catch(showError);
+  }
 })();
 
 // 選單載入
 preset.addEventListener('change', () => {
   if (!preset.value) return;
-  loadFromURL(normalizeSrc(preset.value)).catch(showError);
-  updateShare(preset.value);
+  const s = normalizeSrc(preset.value);
+  loadFromURL(s).catch(showError);
+  updateShare(s);
 });
 
 // 上傳本機
@@ -52,7 +68,7 @@ glbInput.onchange = async () => {
   localBlobURL = URL.createObjectURL(f);
   const ticket = ++loadTicket;
   beginOverlay('準備讀取本機檔…', 0);
-  try { await setModelSrcAndWait(localBlobURL, ticket); endOverlayOK(); preset.value=''; updateShare(''); }
+  try { await setModelSrcAndWait(localBlobURL, ticket); endOverlayOK(); preset.value=''; updateShare(''); setQuerySrc(''); }
   catch(e){ if(ticket!==loadTicket) return; showError(e); }
 };
 
@@ -63,25 +79,25 @@ resetBtn.onclick = () => {
   mv.cameraTarget = 'auto auto auto';
 };
 
-// 分享連結
+// 分享連結（用不編碼 / 的方式組網址）
 shareBtn.onclick = async () => {
-  const url = new URL(location.href);
-  const src = currentRemoteSrc(); if (!src) return alert('目前是本機檔或尚未載入遠端模型，無法分享連結。');
-  url.searchParams.set('src', src);
-  try { await navigator.clipboard.writeText(url.toString()); alert('連結已複製：\n'+url.toString()); }
-  catch { prompt('請手動複製這個連結：', url.toString()); }
+  const src = currentRemoteSrc();
+  if (!src) return alert('目前是本機檔或尚未載入遠端模型，無法分享連結。');
+  const link = location.origin + location.pathname + '?src=' + encodeURI(src);
+  try { await navigator.clipboard.writeText(link); alert('連結已複製：\n' + link); }
+  catch { prompt('請手動複製這個連結：', link); }
 };
 
 // 拖拉檔案
-document.addEventListener('dragover', e=>e.preventDefault());
-document.addEventListener('drop', e=>{
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => {
   e.preventDefault();
-  const [file]=e.dataTransfer.files; if(!file) return;
-  if(localBlobURL) URL.revokeObjectURL(localBlobURL);
+  const [file] = e.dataTransfer.files; if (!file) return;
+  if (localBlobURL) URL.revokeObjectURL(localBlobURL);
   localBlobURL = URL.createObjectURL(file);
   const ticket = ++loadTicket;
   beginOverlay('準備讀取本機檔…', 0);
-  setModelSrcAndWait(localBlobURL, ticket).then(endOverlayOK).catch(showError);
+  setModelSrcAndWait(localBlobURL, ticket).then(() => { endOverlayOK(); setQuerySrc(''); }).catch(showError);
   preset.value=''; updateShare('');
 });
 
@@ -109,9 +125,7 @@ async function loadFromURL(srcRaw){
     await setModelSrcAndWait(remoteBlobURL, ticket);
     endOverlayOK();
 
-    const u = new URL(location.href);
-    u.searchParams.set('src', src);
-    history.replaceState(null, '', u);
+    setQuerySrc(src); // ★ 用不編碼 / 的方式寫回網址
   } catch (e){
     if(ticket!==loadTicket) return;
     showError(e);
@@ -120,12 +134,12 @@ async function loadFromURL(srcRaw){
 
 // 串流下載：回報 { pct(0~100|undefined), received, total }
 async function fetchToBlobURL(url, onProgress, signal){
-  const res = await fetch(url, {mode:'cors', signal});
+  const res = await fetch(url, { mode:'cors', signal });
   if (!res.ok) throw new Error(`HTTP ${res.status}（路徑或大小寫可能錯了）`);
   if (!res.body){
     const buf = await res.arrayBuffer();
-    onProgress?.({pct:100,received:buf.byteLength,total:buf.byteLength});
-    return URL.createObjectURL(new Blob([buf], {type:'model/gltf-binary'}));
+    onProgress?.({ pct:100, received:buf.byteLength, total:buf.byteLength });
+    return URL.createObjectURL(new Blob([buf], { type:'model/gltf-binary' }));
   }
   const reader = res.body.getReader();
   const total = Number(res.headers.get('Content-Length')) || 0;
@@ -135,9 +149,9 @@ async function fetchToBlobURL(url, onProgress, signal){
     if(done) break;
     chunks.push(value); received += value.length;
     const pct = total ? Math.round(received/total*100) : undefined;
-    onProgress?.({pct,received,total});
+    onProgress?.({ pct, received, total });
   }
-  return URL.createObjectURL(new Blob(chunks, {type:'model/gltf-binary'}));
+  return URL.createObjectURL(new Blob(chunks, { type:'model/gltf-binary' }));
 }
 
 // 設 src 並等待：load 或 updateComplete 任一先到；30s 超時保險
@@ -165,7 +179,6 @@ function setModelSrcAndWait(objURL, ticket){
     mv.cameraTarget = 'auto auto auto';
     mv.cameraControls = true;
 
-    // 第二條路：等待 component 更新完成
     mv.updateComplete?.then(()=>{ if(ticket!==loadTicket) return; done(true); }).catch(()=>{});
   });
 }
@@ -185,6 +198,5 @@ function currentRemoteSrc(){ const p = new URLSearchParams(location.search); ret
 
 window.addEventListener('beforeunload', ()=>{
   if(localBlobURL) URL.revokeObjectURL(localBlobURL);
-  if(remoteBlobURL) URL.revokeObjectURL(remoteBlobURL);
-  if(fetchCtrl) fetchCtrl.abort();
-});
+  if(remoteBlobURL) URL.revokeObjectURL(rem
+::contentReference[oaicite:0]{index=0}
