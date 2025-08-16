@@ -11,9 +11,21 @@
   select,input[type=file],button{padding:.45rem .6rem;border-radius:.6rem;border:1px solid #334155;background:#111827;color:#e5e7eb}
   button{background:#334155;border-color:#334155}
   label{display:flex;align-items:center;gap:.4rem}
-  /* 聯絡連結樣式 */
   a.ad{padding:.45rem .6rem;border-radius:.6rem;background:#64748b;color:white;text-decoration:none}
   a.ad:hover{opacity:.9}
+
+  /* 進度覆蓋層 */
+  .viewer-wrap{position:relative}
+  .progress-overlay{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    background:rgba(2,6,23,.55); backdrop-filter: blur(2px);
+  }
+  .progress-box{min-width:260px; max-width:90vw; padding:16px; border-radius:12px;
+    background:#0b1020; border:1px solid #1f2937; box-shadow:0 6px 18px rgba(0,0,0,.35)}
+  .progress-box .msg{font-size:14px; color:#cbd5e1; margin-bottom:8px}
+  .track{height:10px; border-radius:8px; background:#1f2937; overflow:hidden}
+  .fill{height:100%; width:0%; background:#60a5fa; transition:width .15s ease}
+  .pct{font-size:12px; color:#94a3b8; margin-top:6px; text-align:right}
 </style>
 
 <header class="row">
@@ -30,12 +42,23 @@
   <button id="reset">重置視角</button>
   <button id="share">複製分享連結</button>
 
-  <!-- 把 href 改成你的聯絡連結（IG/Line/網站/Email 等都可） -->
+  <!-- 把 href 換成你的聯絡網址 -->
   <a class="ad" href="https://www.instagram.com/lan_lan_mao?igsh=MWxrYW5kMno0MW1ieA%3D%3D&utm_source=qr" target="_blank" rel="noopener">聯絡請洽IG</a>
 </header>
 
 <main>
-  <model-viewer id="mv" camera-controls shadow-intensity="0.8" exposure="1"></model-viewer>
+  <div class="viewer-wrap">
+    <model-viewer id="mv" camera-controls shadow-intensity="0.8" exposure="1"></model-viewer>
+
+    <!-- 下載進度覆蓋層 -->
+    <div id="progress" class="progress-overlay" hidden>
+      <div class="progress-box">
+        <div id="progressMsg" class="msg">準備下載…</div>
+        <div class="track"><div id="progressFill" class="fill"></div></div>
+        <div id="progressPct" class="pct">0%</div>
+      </div>
+    </div>
+  </div>
 </main>
 
 <script type="module" src="./src/main.js"></script>
