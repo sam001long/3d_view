@@ -1,9 +1,14 @@
 [
   { "label": "柯南_20250813", "src": "models/柯南_20250813.glb" },
+  { "label": "芙莉蓮_20250708", "src": "models/芙莉蓮20250708.glb" },
+   { "label": "費倫_20250708", "src": "models/費倫20250708.glb" },
+  { "label": "兔子公仔_20250624", "src": "models/兔子公仔20250624.glb" },
    { "label": "吉伊卡哇_20250320", "src": "models/吉伊卡哇_20250320.glb" },
   { "label": "小八貓_20250319", "src": "models/小八貓_20250319.glb" },
    { "label": "鱷魚小新_20241011", "src": "models/LA_Shin_20241011.glb" },
    { "label": "睡衣小新_20241002", "src": "models/dance_Shin_20241002.glb" },
+   { "label": "庫洛米_20240923", "src": "models/庫洛米_20240923.glb" },
+   { "label": "布丁狗_20240827", "src": "models/布丁狗20240827.glb" },
   { "label": "變種吉娃娃_20240704", "src": "models/GODGWAWA_20240704.glb" },
   { "label": "柯南_20231201", "src": "models/Conan_20231201.glb" },
   { "label": "柯南_20231125", "src": "models/柯南_20231125.glb" }
