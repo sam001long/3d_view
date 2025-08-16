@@ -198,5 +198,6 @@ function currentRemoteSrc(){ const p = new URLSearchParams(location.search); ret
 
 window.addEventListener('beforeunload', ()=>{
   if(localBlobURL) URL.revokeObjectURL(localBlobURL);
-  if(remoteBlobURL) URL.revokeObjectURL(rem
-::contentReference[oaicite:0]{index=0}
+  if(remoteBlobURL) URL.revokeObjectURL(remoteBlobURL);
+  if(fetchCtrl) fetchCtrl.abort();
+});
