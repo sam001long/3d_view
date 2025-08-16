@@ -12,12 +12,20 @@ const fillEl = document.getElementById('progressFill');
 const pctEl = document.getElementById('progressPct');
 const msgEl = document.getElementById('progressMsg');
 
-let localBlobURL;        // 本機檔 objectURL
-let remoteBlobURL;       // 遠端下載後的 objectURL
-let fetchCtrl = null;    // 下載中可中止
-let loadTicket = 0;      // 防抖：只處理最後一次載入
+let localBlobURL, remoteBlobURL;
+let fetchCtrl = null;
+let loadTicket = 0;
 
-// -------- 初始化選單（讀 public/models/manifest.json） ----------
+// --- 工具：把 src 正常化（解掉 %2F / 雙重編碼、去掉開頭的 /） ---
+function normalizeSrc(s) {
+  if (!s) return s;
+  try { s = decodeURIComponent(s); } catch {}
+  try { s = decodeURIComponent(s); } catch {}       // 有些會被「雙重」編碼
+  s = s.replace(/^\/+/, '');                        // 避免打到根目錄
+  return s;
+}
+
+// -------- 初始化選單與網址參數 ----------
 (async () => {
   try {
     const res = await fetch('models/manifest.json', { cache: 'no-store' });
@@ -30,25 +38,24 @@ let loadTicket = 0;      // 防抖：只處理最後一次載入
         preset.appendChild(opt);
       }
     }
-  } catch { /* 沒有清單也沒關係 */ }
+  } catch {}
 
-  // 如果網址帶 ?src=...
   const p = new URLSearchParams(location.search);
-  const firstSrc = p.get('src');
+  const firstSrc = normalizeSrc(p.get('src'));
   if (firstSrc) {
     preset.value = [...preset.options].find(o => o.value === firstSrc)?.value || '';
     loadFromURL(firstSrc).catch(showError);
   }
 })();
 
-// -------- 事件：選單載入（遠端） ----------
+// -------- 事件：選單載入 ----------
 preset.addEventListener('change', () => {
   if (!preset.value) return;
-  loadFromURL(preset.value).catch(showError);
+  loadFromURL(normalizeSrc(preset.value)).catch(showError);
   updateShare(preset.value);
 });
 
-// -------- 事件：上傳本機 GLB（不會上傳到網路） ----------
+// -------- 事件：上傳本機 ----------
 glbInput.onchange = async () => {
   const f = glbInput.files?.[0];
   if (!f) return;
@@ -64,7 +71,6 @@ glbInput.onchange = async () => {
     preset.value = '';
     updateShare('');
   } catch (err) {
-    // 若被新任務取代就忽略
     if (ticket !== loadTicket) return;
     showError(err);
   }
@@ -77,7 +83,7 @@ resetBtn.onclick = () => {
   mv.cameraTarget = 'auto auto auto';
 };
 
-// -------- 複製分享連結（基於目前載入的遠端 src） ----------
+// -------- 分享連結 ----------
 shareBtn.onclick = async () => {
   const url = new URL(location.href);
   const src = currentRemoteSrc();
@@ -91,7 +97,7 @@ shareBtn.onclick = async () => {
   }
 };
 
-// -------- 支援把檔案拖進頁面 ----------
+// -------- 拖拉檔案 ----------
 document.addEventListener('dragover', (e) => { e.preventDefault(); });
 document.addEventListener('drop', (e) => {
   e.preventDefault();
@@ -106,19 +112,16 @@ document.addEventListener('drop', (e) => {
   updateShare('');
 });
 
-// =================== 核心：帶進度下載 + 安全載入 ===================
+// =================== 帶進度下載 + 保證關遮罩 ===================
+async function loadFromURL(srcRaw) {
+  const src = normalizeSrc(srcRaw);
 
-async function loadFromURL(src) {
-  // 取消前一個下載
   if (fetchCtrl) fetchCtrl.abort();
   fetchCtrl = new AbortController();
 
   const ticket = ++loadTicket;
-
-  // 顯示「連線中…」
   beginOverlay('連線中…', 0);
 
-  // 下載（邊下邊顯示百分比/MB）
   try {
     const blobURL = await fetchToBlobURL(new URL(src, location).href, (info) => {
       if (ticket !== loadTicket) return;
@@ -128,38 +131,31 @@ async function loadFromURL(src) {
       updateOverlay(pct ?? 0, text);
     }, fetchCtrl.signal);
 
-    // 清掉舊的遠端 URL
     if (remoteBlobURL) URL.revokeObjectURL(remoteBlobURL);
     remoteBlobURL = blobURL;
 
-    // 設給 <model-viewer>，並等待真正載入完成
     updateOverlay(100, '解碼中…');
     await setModelSrcAndWait(remoteBlobURL, ticket);
 
-    // 成功
     endOverlayOK();
 
-    // 更新網址（不重整）
     const u = new URL(location.href);
     u.searchParams.set('src', src);
     history.replaceState(null, '', u);
   } catch (err) {
-    if (ticket !== loadTicket) return; // 被新任務取代
-    throw err;
+    if (ticket !== loadTicket) return;
+    showError(err);
   }
 }
 
-// 以串流下載，回報 { pct(0~100|undefined), received(bytes), total(bytes|0) }
 async function fetchToBlobURL(url, onProgress, signal) {
   const res = await fetch(url, { mode: 'cors', signal });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}（檔案路徑可能錯了，或大小寫不符）`);
 
-  // 沒有 body 讀取器就一次讀完
   if (!res.body) {
     const buf = await res.arrayBuffer();
     onProgress?.({ pct: 100, received: buf.byteLength, total: buf.byteLength });
-    const blob = new Blob([buf], { type: 'model/gltf-binary' });
-    return URL.createObjectURL(blob);
+    return URL.createObjectURL(new Blob([buf], { type: 'model/gltf-binary' }));
   }
 
   const reader = res.body.getReader();
@@ -176,28 +172,33 @@ async function fetchToBlobURL(url, onProgress, signal) {
     onProgress?.({ pct, received, total });
   }
 
-  const blob = new Blob(chunks, { type: 'model/gltf-binary' });
-  return URL.createObjectURL(blob);
+  return URL.createObjectURL(new Blob(chunks, { type: 'model/gltf-binary' }));
 }
 
-// 設定 src 並「確定」載入完成（load 事件 + 下一幀）
+// 設 src 並等待 load（附 30s 最後手段超時，避免永遠卡住）
 function setModelSrcAndWait(objURL, ticket) {
   return new Promise((resolve, reject) => {
-    const onLoad = async () => {
-      if (ticket !== loadTicket) return; // 被取代
-      await new Promise(r => requestAnimationFrame(r)); // 等一幀，避免覆蓋層搶在前面
-      resolve();
-      cleanup();
-    };
-    const onError = (e) => { cleanup(); reject(new Error('模型載入失敗')); };
-
-    function cleanup() {
+    let done = false;
+    const finish = (ok, err) => {
+      if (done) return;
+      done = true;
       mv.removeEventListener('load', onLoad);
       mv.removeEventListener('error', onError);
-    }
+      clearTimeout(to);
+      ok ? resolve() : reject(err || new Error('模型載入失敗'));
+    };
+    const onLoad = () => {
+      if (ticket !== loadTicket) return;
+      requestAnimationFrame(() => finish(true));
+    };
+    const onError = (e) => finish(false, new Error('模型載入失敗'));
 
-    mv.addEventListener('load', onLoad, { once: true });
-    mv.addEventListener('error', onError, { once: true });
+    mv.addEventListener('load', onLoad);
+    mv.addEventListener('error', onError);
+
+    // 30 秒保險機制：就算沒有事件也把遮罩關掉，避免看起來像當機
+    const to = setTimeout(() => finish(true), 30000);
+
     mv.setAttribute('crossorigin', 'anonymous');
     mv.src = objURL;
     mv.cameraOrbit = '0deg 75deg auto';
@@ -206,38 +207,22 @@ function setModelSrcAndWait(objURL, ticket) {
   });
 }
 
-// =================== UI helpers ===================
-
-function beginOverlay(msg, pct) {
-  updateOverlay(pct, msg);
-  overlay.hidden = false;
-}
-function updateOverlay(pct, msg) {
+// ========== UI helpers ==========
+function beginOverlay(msg, pct){ updateOverlay(pct, msg); overlay.hidden = false; }
+function updateOverlay(pct,msg){
   fillEl.style.width = `${Math.max(0, Math.min(100, pct || 0))}%`;
   pctEl.textContent = Number.isFinite(pct) ? `${pct}%` : '…';
   if (msg) msgEl.textContent = msg;
 }
-function endOverlayOK() {
-  updateOverlay(100, '完成');
-  setTimeout(() => { overlay.hidden = true; updateOverlay(0, ''); }, 250);
-}
-function showError(err) {
+function endOverlayOK(){ updateOverlay(100,'完成'); setTimeout(() => { overlay.hidden = true; updateOverlay(0,''); }, 250); }
+function showError(err){
   overlay.hidden = false;
   updateOverlay(0, (err && err.message) ? `載入失敗：${err.message}` : '載入失敗，請檢查路徑或跨域 (CORS)');
 }
+function updateShare(src){ const on=!!src; shareBtn.disabled=!on; shareBtn.style.opacity=on?1:0.6; }
+function currentRemoteSrc(){ const p = new URLSearchParams(location.search); return p.get('src') || ''; }
 
-// 分享按鈕狀態
-function updateShare(src) {
-  const hasRemote = !!src;
-  shareBtn.disabled = !hasRemote;
-  shareBtn.style.opacity = hasRemote ? 1 : 0.6;
-}
-function currentRemoteSrc() {
-  const p = new URLSearchParams(location.search);
-  return p.get('src') || '';
-}
-
-// -------- 離開頁面釋放資源 ----------
+// -------- 釋放資源 ----------
 window.addEventListener('beforeunload', () => {
   if (localBlobURL) URL.revokeObjectURL(localBlobURL);
   if (remoteBlobURL) URL.revokeObjectURL(remoteBlobURL);
