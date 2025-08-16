@@ -1,6 +1,6 @@
 <!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GLB 線上檢視器（選單/上傳，無 AR）</title>
+<title>GLB 線上檢視器（選單/上傳）</title>
 <style>
   :root{color-scheme:dark light}
   body{font:16px/1.4 system-ui;margin:0;background:#0b1020;color:#e5e7eb}
@@ -10,8 +10,10 @@
   .row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
   select,input[type=file],button{padding:.45rem .6rem;border-radius:.6rem;border:1px solid #334155;background:#111827;color:#e5e7eb}
   button{background:#334155;border-color:#334155}
-  small{color:#94a3b8}
   label{display:flex;align-items:center;gap:.4rem}
+  /* 聯絡連結樣式 */
+  a.ad{padding:.45rem .6rem;border-radius:.6rem;background:#64748b;color:white;text-decoration:none}
+  a.ad:hover{opacity:.9}
 </style>
 
 <header class="row">
@@ -21,17 +23,18 @@
     </select>
   </label>
 
-  <label>或上傳 GLB
+  <label>上傳
     <input id="glb" type="file" accept=".glb,.gltf">
   </label>
 
   <button id="reset">重置視角</button>
   <button id="share">複製分享連結</button>
-  <small>也支援網址參數：?src=models/檔名.glb</small>
+
+  <!-- 把 href 改成你的聯絡連結（IG/Line/網站/Email 等都可） -->
+  <a class="ad" href="https://www.instagram.com/你的IG帳號" target="_blank" rel="noopener">聯絡請洽</a>
 </header>
 
 <main>
-  <!-- 已移除 AR / VR 相關屬性 -->
   <model-viewer id="mv" camera-controls shadow-intensity="0.8" exposure="1"></model-viewer>
 </main>
 
