@@ -1,6 +1,5 @@
 [
-   { "label": "啟動儀式_20250819", "src": "models/啟動儀式_20250819.glb" },
-  { "label": "FooDog_20250816", "src": "models/FooDog_20250816.glb" },
+    { "label": "FooDog_20250816", "src": "models/FooDog_20250816.glb" },
    { "label": "休斯國際生活拍照區_20250815", "src": "models/休斯國際生活拍照區_20250815.glb" },
   { "label": "柯南_20250813", "src": "models/柯南_20250813.glb" },
    { "label": "基德_20250813", "src": "models/基德_20250813.glb" },
