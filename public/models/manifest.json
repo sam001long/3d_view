@@ -1,7 +1,7 @@
 [
       { "label": "tripo_pbr_model_f7ca13bb-15b5-471d-919c-8d827fbe8e52_meshopt", "src": "models/tripo_pbr_model_f7ca13bb-15b5-471d-919c-8d827fbe8e52_meshopt.glb" },
       { "label": "tripo_pbr_model_54f5ee49-9b53-4919-bac0-15a55ece8b38_meshopt", "src": "models/tripo_pbr_model_54f5ee49-9b53-4919-bac0-15a55ece8b38_meshopt.glb" },
-      { "label": "tripo_model_631da220-cdf5-4416-9bf2-d56ca1fb2d71_meshopt", "src": "tripo_model_631da220-cdf5-4416-9bf2-d56ca1fb2d71_meshopt.glb" },
+      { "label": "tripo_model_631da220-cdf5-4416-9bf2-d56ca1fb2d71_meshopt", "src": "models/tripo_model_631da220-cdf5-4416-9bf2-d56ca1fb2d71_meshopt.glb" },
      { "label": "S__92389382", "src": "models/S__92389382.glb" },
     { "label": "FooDog_20250816", "src": "models/FooDog_20250816.glb" },
    { "label": "休斯國際生活拍照區_20250815", "src": "models/休斯國際生活拍照區_20250815.glb" },
