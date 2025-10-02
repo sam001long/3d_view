@@ -1,4 +1,5 @@
 [
+ { "label": "PSIO人偶裝", "src": "models/PSIO人偶裝.glb" },
  { "label": "華城電機拍照區", "src": "models/TE.glb" },
       { "label": "tripo_pbr_model_f7ca13bb-15b5-471d-919c-8d827fbe8e52_meshopt", "src": "models/tripo_pbr_model_f7ca13bb-15b5-471d-919c-8d827fbe8e52_meshopt.glb" },
       { "label": "tripo_pbr_model_54f5ee49-9b53-4919-bac0-15a55ece8b38_meshopt", "src": "models/tripo_pbr_model_54f5ee49-9b53-4919-bac0-15a55ece8b38_meshopt.glb" },
